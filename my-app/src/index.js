@@ -1,5 +1,7 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('node:path');
+const readXlsxFile = require('read-excel-file/node')
+const fs = require('fs');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -7,13 +9,39 @@ if (require('electron-squirrel-startup')) {
 }
 
 
-
-var watchingFolder = "%USERPROFILE%/Downloads";
-
+var watchingFolder = process.env.userprofile+"/Downloads/";
+var outputFolder = process.env.userprofile+"/Documents/WalkdownBBDs/";
 var specialName = "Branch-BaseCase-IPSPCE-DetailedComparison-PJM.xslx";
+var lastRenamedFile = "";
+function parseXSLX(rows)
+{
+  var branchID = rows[5][2];
+  var fromBus = rows[8][2];
+  var toBus = rows[9][2];
+  return [branchID, fromBus, toBus];
+  // console.log(branchID, fromBus, toBus);
+}
 
+function checkAndRead()
+{
+  if(fs.existsSync(watchingFolder+specialName))
+  {
+    readXlsxFile(watchingFolder+specialName).then((rows) => {
+      var [branchID, fromBus, toBus] = parseXSLX(rows);
+      var newName = branchID+"_"+fromBus+" - "+toBus+"_TPS-IPS.xslx";
+      if(fs.existsSync(outputFolder+newName))
+      {
+        fs.unlinkSync(outputFolder+newName);
+      }
+      lastRenamedFile = newName;
+      fs.copyFileSync(watchingFolder+specialName, outputFolder+newName, fs.constants.COPYFILE_EXCL);
+      fs.unlinkSync(watchingFolder+specialName);
+    });
+  }
+  window.webContents.send('data', {"watchingFolder": watchingFolder, "outputFolder": outputFolder, "lastRenamedFile": lastRenamedFile});
+}
 
-
+setInterval(checkAndRead, 1000);
 
 const createWindow = () => {
   // Create the browser window.
@@ -27,17 +55,16 @@ const createWindow = () => {
 
   // and load the index.html of the app.
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
-
   // Open the DevTools.
-  mainWindow.webContents.openDevTools();
+  // mainWindow.webContents.openDevTools();
+  return mainWindow;
 };
-
+var window;
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
-  createWindow();
-
+  window = createWindow();
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
   app.on('activate', () => {
