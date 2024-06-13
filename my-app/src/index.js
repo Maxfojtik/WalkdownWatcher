@@ -10,7 +10,7 @@ if (require('electron-squirrel-startup')) {
 
 
 var watchingFolder = process.env.userprofile+"/Downloads/";
-var outputFolder = process.env.userprofile+"/Documents/WalkdownBBDs/";
+var outputFolder = process.env.userprofile+"/Documents/WalkdownComparisonReports/";
 var specialName = "Branch-BaseCase-IPSPCE-DetailedComparison-PJM.xslx";
 var lastRenamedFile = "";
 function parseXSLX(rows)
